@@ -5,7 +5,8 @@ let activeEffect
 const bucket = new WeakMap()
 
 const data = {
-    text: 'hello euv'
+    text: 'hello euv',
+    ok: true
 }
 
 /**
@@ -24,6 +25,7 @@ function track(target, key) {
             depsMap.set(key, deps)
         }
         deps.add(activeEffect)
+        activeEffect.deps.push(deps)
     }
 }
 
@@ -33,9 +35,10 @@ function track(target, key) {
 function trigger(target, key) {
     const depsMap = bucket.get(target)
     if (!depsMap) return
-    const deps = depsMap.get(key)
-    if (!deps) return
-    deps.forEach(fn => fn())
+    const effects = depsMap.get(key)
+    if (!effects) return
+    const effectsToRun = new Set(effects)
+    effectsToRun.forEach(fn => fn())
 }
 
 const obj = new Proxy(data, {
@@ -52,12 +55,27 @@ const obj = new Proxy(data, {
 
 })
 function effect(fn) {
-    activeEffect = fn
-    fn()
+    const effectFn = () => {
+        cleanup(effectFn)
+        activeEffect = effectFn
+        fn()
+    }
+
+    effectFn.deps = []
+
+    effectFn()
+}
+
+function cleanup (effectFn) {
+    for (const deps of effectFn.deps) {
+        deps.delete(effectFn)
+    }
+    effectFn.deps.length = 0
 }
 
 effect(() => {
-    document.body.innerText = obj.text
+    // obj.ok 的值不同，会执行不同的代码分支，这就是分支切换
+    document.body.innerText = obj.ok ? obj.text : 'not'
 })
 
 setTimeout(() => {
