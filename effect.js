@@ -66,6 +66,12 @@ function effect(fn) {
     effectFn()
 }
 
+/**
+ * effectFn.deps 存放依赖的Set
+ * effectFn.deps = WeekMap.Map.Set
+ *
+ */
+
 function cleanup (effectFn) {
     for (const deps of effectFn.deps) {
         deps.delete(effectFn)
