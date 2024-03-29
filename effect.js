@@ -1,12 +1,12 @@
 
-let activeEffect
+
 
 // target -> key -> effectFn
 const bucket = new WeakMap()
 
 const data = {
-    text: 'hello euv',
-    ok: true
+    foo: 'hello euv',
+    bar: true
 }
 
 /**
@@ -54,16 +54,24 @@ const obj = new Proxy(data, {
     }
 
 })
+
+let activeEffect
+const effectStack = []
 function effect(fn) {
     const effectFn = () => {
         cleanup(effectFn)
         activeEffect = effectFn
+        effectStack.push(effectFn)
         fn()
+        effectStack.pop()
+        activeEffect = effectStack[effectStack.length - 1]
     }
 
     effectFn.deps = []
 
     effectFn()
+
+
 }
 
 /**
@@ -80,10 +88,14 @@ function cleanup (effectFn) {
 }
 
 effect(() => {
-    // obj.ok 的值不同，会执行不同的代码分支，这就是分支切换
-    document.body.innerText = obj.ok ? obj.text : 'not'
+    console.log('effect 1')
+    effect(() => {
+        console.log('effect 2')
+        obj.bar
+    })
+    obj.foo
 })
 
 setTimeout(() => {
-    obj.text = 'euv hello'
+   obj.bar = 222
 }, 3000)
